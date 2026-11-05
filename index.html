@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ماشین‌حساب</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Tahoma, sans-serif;
+    background: #1c1c28;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh;
+  }
+  .calc {
+    width: 100%; max-width: 380px;
+    background: #23233a;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .screen {
+    background: #17172a;
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    text-align: left;
+    min-height: 110px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .history {
+    color: #7a7a9a; font-size: 16px; min-height: 22px;
+    overflow: hidden; white-space: nowrap; direction: ltr;
+  }
+  .result {
+    color: #fff; font-size: 42px; font-weight: 600;
+    direction: ltr; overflow: hidden; white-space: nowrap;
+  }
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  button {
+    border: none; border-radius: 14px;
+    padding: 18px 0; font-size: 22px; font-weight: 600;
+    background: #2e2e4a; color: #e8e8f5;
+    cursor: pointer; transition: filter .1s, transform .05s;
+  }
+  button:active { filter: brightness(1.4); transform: scale(.96); }
+  .op { background: #ff8c1a; color: #fff; }
+  .fn { background: #3b3b5c; color: #ffb066; }
+  .eq { background: #ff6b00; color: #fff; grid-row: span 2; }
+  .zero { grid-column: span 2; }
+</style>
+</head>
+<body>
+<div class="calc">
+  <div class="screen">
+    <div class="history" id="history"></div>
+    <div class="result" id="result">0</div>
+  </div>
+  <div class="keys">
+    <button class="fn" onclick="clearAll()">C</button>
+    <button class="fn" onclick="backspace()">⌫</button>
+    <button class="fn" onclick="percent()">%</button>
+    <button class="op" onclick="setOp('/')">÷</button>
+
+    <button onclick="appendNum('7')">7</button>
+    <button onclick="appendNum('8')">8</button>
+    <button onclick="appendNum('9')">9</button>
+    <button class="op" onclick="setOp('*')">×</button>
+
+    <button onclick="appendNum('4')">4</button>
+    <button onclick="appendNum('5')">5</button>
+    <button onclick="appendNum('6')">6</button>
+    <button class="op" onclick="setOp('-')">−</button>
+
+    <button onclick="appendNum('1')">1</button>
+    <button onclick="appendNum('2')">2</button>
+    <button onclick="appendNum('3')">3</button>
+    <button class="op" onclick="setOp('+')">+</button>
+
+    <button class="zero" onclick="appendNum('0')">0</button>
+    <button onclick="appendNum('.')">.</button>
+    <button class="eq" onclick="calculate()">=</button>
+  </div>
+</div>
+<script>
+  let current = '0', prev = null, op = null, justEvaluated = false;
+  const resultEl = document.getElementById('result');
+  const historyEl = document.getElementById('history');
+
+  const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+
+  function render() {
+    resultEl.textContent = current;
+    historyEl.textContent = prev !== null && op ? prev + ' ' + symbols[op] : '';
+  }
+
+  function appendNum(n) {
+    if (justEvaluated) { current = '0'; justEvaluated = false; }
+    if (n === '.' && current.includes('.')) return;
+    if (current === '0' && n !== '.') current = '';
+    current += n;
+    render();
+  }
+
+  function setOp(o) {
+    if (op && prev !== null && !justEvaluated) calculate(true);
+    prev = parseFloat(current);
+    op = o;
+    justEvaluated = true;
+    render();
+  }
+
+  function calculate(chain) {
+    if (op === null || prev === null) return;
+    const a = prev, b = parseFloat(current);
+    let r;
+    switch (op) {
+      case '+': r = a + b; break;
+      case '-': r = a - b; break;
+      case '*': r = a * b; break;
+      case '/': r = b === 0 ? NaN : a / b; break;
+    }
+    current = isNaN(r) ? 'خطا' : String(Math.round(r * 1e10) / 1e10);
+    if (!chain) historyEl.textContent = a + ' ' + symbols[op] + ' ' + b + ' =';
+    prev = null; op = null; justEvaluated = true;
+    render();
+    if (chain) { justEvaluated = false; }
+  }
+
+  function percent() {
+    current = String(parseFloat(current) / 100);
+    render();
+  }
+
+  function backspace() {
+    if (justEvaluated) return;
+    current = current.length > 1 ? current.slice(0, -1) : '0';
+    render();
+  }
+
+  function clearAll() {
+    current = '0'; prev = null; op = null; justEvaluated = false;
+    historyEl.textContent = '';
+    render();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9' || e.key === '.') appendNum(e.key);
+    else if (['+', '-', '*', '/'].includes(e.key)) setOp(e.key);
+    else if (e.key === 'Enter' || e.key === '=') calculate();
+    else if (e.key === 'Backspace') backspace();
+    else if (e.key === 'Escape') clearAll();
+  });
+
+  render();
+</script>
+</body>
+</html>
